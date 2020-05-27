@@ -1,0 +1,87 @@
+import matplotlib.pyplot as plt
+import numpy as np 
+import time
+
+
+
+
+def restPoly(P): #Renvoie une liste de polynôme en faisant des divisions euclidiennes de polynôme
+    listPoly = [P]
+    prime = np.polyder(P)
+    i = 1
+    listPoly = listPoly +[prime] + [(-1)*np.polydiv(P,prime)[1]]
+    while (np.polydiv(listPoly[i],listPoly[i+1])[1] -[0]).any() :
+        testPoly =  [(-1)*np.polydiv(listPoly[i],listPoly[i+1])[1]] 
+        listPoly = listPoly +  testPoly
+        i += 1  
+    return listPoly
+
+def valList(listPoly,a): #Renvoie une liste avec la valeur de chaque polynômes en a
+    L= []
+    for i in listPoly:
+         L = L + [np.polyval(i,a)]
+    return L
+
+def CountChange(listPoly,a): #Renvoie le nombre de changement de signe des polynômes en a
+    Count = 0
+    valPoly = valList(listPoly,a)
+    for i in range(1,len(valPoly)):
+        if valPoly[i-1] < 0 and valPoly[i] >= 0:
+            Count += 1 
+        elif valPoly[i-1] > 0 and valPoly[i] <= 0: 
+            Count += 1        
+    return Count
+
+def CountInterval(interval,listPoly): #Renvoie le nombre de racines dans "interval" donc un intervalle [a,b]
+    return (CountChange(listPoly,interval[0])-CountChange(listPoly,interval[1]))
+
+
+def Root(P,a,b): #Cette fonction renvoie une racine entre a et b
+    Root = 112
+    listPoly = restPoly(P)
+    if np.polyval(P,a) == 0: 
+        Root = a
+    if np.polyval(P,b) == 0:
+        Root = b
+    while np.asarray([(np.polyval(P,Root) != 0),(abs(np.polyval(P,Root)) >= 10**(-5))]).all():
+        Root = (b+a)/2
+        if (CountChange(listPoly,a)-CountChange(listPoly,Root)) == 1:
+            b = Root 
+        elif (CountChange(listPoly,Root)-CountChange(listPoly,b)) == 1: 
+            a = Root 
+        elif ((CountChange(listPoly,a)-CountChange(listPoly,Root))) != 1 and ((CountChange(listPoly,a)-CountChange(listPoly,Root))) != 0:
+            b=Root
+        elif  ((CountChange(listPoly,Root)-CountChange(listPoly,b))) != 1 and ((CountChange(listPoly,Root)-CountChange(listPoly,b))) != 0:
+            a=Root
+            
+    return Root
+
+
+
+def Research(P,a,b): #Cette fonction renvoie la liste des racines de P sur un intervalle [a,b] 
+    listPoly = restPoly(P)
+    Roots = []
+    interval = [a,b]
+    Intervals = []
+    NbRoots = CountInterval([a,b],listPoly)
+    while len(Roots) != NbRoots:
+        
+        Racine = Root(P,interval[0],interval[1])
+        Roots.append(Racine)
+        if CountInterval([a,Racine-0.1],listPoly) == 1 and CountInterval([Racine+0.1,b],listPoly) == 1: 
+            Roots.append(Root(P,a,Racine-0.1))
+            Roots.append(Root(P,Racine+0.1,b))
+        elif CountInterval([a,Racine-0.1],listPoly) == 0 and CountInterval([Racine+0.1,b],listPoly) == 1:
+            interval = [Racine+0.1,b]
+            Intervals.append(interval)
+        elif CountInterval([a,Racine-0.1],listPoly) == 1 and CountInterval([Racine+0.1,b],listPoly) == 0:
+            interval = [a,Racine-0.1]
+            Intervals.append(interval)
+        elif CountInterval([a,Racine-0.1],listPoly) > 1 and CountInterval([Racine+0.1,b],listPoly) > 1: 
+            Roots = Roots + Research(P,a,Racine-0.1) + Research(P,Racine+0.1,b)
+        elif CountInterval([a,Racine-0.1],listPoly) > 1 and CountInterval([Racine+0.1,b],listPoly) == 0:  
+            Roots = Roots + Research(P,a,Racine-0.1)
+        elif CountInterval([a,Racine-0.1],listPoly) == 0 and CountInterval([Racine+0.1,b],listPoly) > 1: 
+            Roots = Roots + Research(P,Racine+0.1,b)
+    Roots.sort()
+    return Roots
